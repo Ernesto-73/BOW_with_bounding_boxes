@@ -1,5 +1,4 @@
 #include <iostream>
-#include "common.h"
 #include <cstdlib>
 #include <opencv2/opencv.hpp>
 
