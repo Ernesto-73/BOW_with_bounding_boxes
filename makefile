@@ -4,7 +4,7 @@
 CXX         = g++
 CC          = $(CXX)
 CPPFLAGS    = -g -Wall -D DEBUG
-CXXFLAGS    = $(INCLUDE) `pkg-config --libs --cflags opencv` 
+CXXFLAGS    = $(INCLUDE) `pkg-config --libs --cflags opencv libxml++-2.6` 
 SOURCES     = ./src/
 HEADERS     = ./include/
 OBJS        = ./obj/

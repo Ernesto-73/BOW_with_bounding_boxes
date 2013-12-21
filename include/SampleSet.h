@@ -5,6 +5,7 @@
 #define SAMPLESET_H
 
 #include <sys/types.h>
+#include <sys/stat.h>
 #include <dirent.h>
 #include <iostream>
 #include <fstream>
@@ -15,6 +16,8 @@
 #include <sstream>
 #include <cstdlib>
 #include <cstdio>
+#include <cassert>
+#include "cxml.h"
 
 typedef struct dirent *DStream;
 /*
@@ -40,6 +43,8 @@ public:
 	// create file list without suffix
 	void createList(std::string listName);
 	
+	// make annotations
+	void makeAnnotations(std::string _path);
 	// set && get 
 	void setUsePrefix(bool val);
 	void setPrefix(std::string _prefix);
@@ -48,6 +53,8 @@ public:
 private:
 	std::vector<std::string> paths;	// sample directory
 	std::vector<std::string> tags;	//class name
+	
+	bool exisitsOrMkdir(std::string _path);
 	
 	bool usePrefix;	// if the new file name use prefix
 	int start;	
