@@ -6,21 +6,29 @@
 
 #include <string>
 #include <iostream>
+#include <cstdlib>
+#include <cassert>
+#include <errno.h>
+#include <cstring>
+#include <libxml++/libxml++.h>
 
 class Cxml
 {
 public:
 	Cxml();
-	Cxml(std::string _name);
-	int create();
+	Cxml(std::string root);
+	int create(std::string fileName);
+	int addRoot(Glib::ustring root);
 	int parse();
 	~Cxml();
+	int addItem(Glib::ustring name, Glib::ustring text);
 	
 private:
 	// .xml file name
-	std::string fileName;
-	
+	xmlpp::Document document;
+	xmlpp::Element* nodeRoot;
 	// check if the file name is valid.
-	bool validateName();
+	bool validateName(std::string fileName);
+	bool fileExists(std::string fileName);
 };
 #endif
