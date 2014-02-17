@@ -1,10 +1,14 @@
-/* 	\file: SampleSet.h
+/* 	
+	\file: SampleSet.h
 	\author: Javier Zhang 
+	\date: 1-21-2014
 */
+
 #include "SampleSet.h"
 
 /*
-	the impletation of class SampleSet
+	The impletation of class SampleSet. Used to create index file of images.
+	.xml files will be created.
 */
 SampleSet::SampleSet(): usePrefix(false), start(0)
 {
@@ -23,6 +27,10 @@ SampleSet::~SampleSet()
 #endif 
 }
 
+/*
+	These functions used system calls, which will reduce the running time and 
+	improve efficiency.
+*/
 void SampleSet::addDir(std::string _path, std::string _tag)
 {
 	if(access(_path.c_str(),R_OK | W_OK | F_OK))
@@ -36,8 +44,10 @@ void SampleSet::addDir(std::string _path, std::string _tag)
 	}
 }
 
+
 void SampleSet::rename()
 {
+	// rename file 
 	int code = start;
 	std::cout<<"\nRenaming files ... "<<std::endl;
 	for(std::vector<std::string>::size_type i = 0; i < paths.size(); i++)
@@ -67,7 +77,7 @@ void SampleSet::rename()
 			
 			newName += suffix;
 			cmd += " " + paths[i] + "/" + newName;
-			if(name == newName)		// Actually, this is no use
+			if(name == newName)		 
 				continue;
 			else 
 				system(cmd.c_str());
@@ -78,6 +88,7 @@ void SampleSet::rename()
 
 void SampleSet::createList(std::string listName)
 {
+	// create file list without suffix
 	std::cout<<"\nCreating file list ..."<<std::endl;
 	std::vector<std::string> list;
 	for(std::vector<std::string>::size_type i = 0; i < paths.size(); i++)
@@ -103,6 +114,7 @@ void SampleSet::createList(std::string listName)
 
 void SampleSet::makeAnnotations(std::string _path)
 {
+	// make annotations	
 	assert(exisitsOrMkdir(_path));
 	std::cout<<"\nMaking annotations ..."<<std::endl;
 	for(std::vector<std::string>::size_type i = 0; i < paths.size(); i++)
@@ -126,6 +138,7 @@ void SampleSet::makeAnnotations(std::string _path)
 
 bool SampleSet::exisitsOrMkdir(std::string _path)
 {
+	// check if the file exists, if not, call 'mkdir'
 	if(!access(_path.c_str(),R_OK | W_OK | F_OK))
 	{
 		std::cout<<"Path '"<<_path<<"' already exists."<<std::endl;

@@ -1,3 +1,9 @@
+/* 	
+	\file: SampleSet.h
+	\author: Javier Zhang 
+	\date: 1-21-2014
+*/
+
 #include <iostream>
 #include <sys/types.h>
 #include <dirent.h>
@@ -22,7 +28,7 @@ int main()
 	tarinval.setUsePrefix(false);
 	tarinval.rename();
 	
-	tarinval.createList("/home/javier/bow/imgset/tranval");
+	tarinval.createList("/home/javier/bow/imgset/trainval");
 	tarinval.makeAnnotations("/home/javier/bow/Annotations");
 	std::cout<<"Total: "<<tarinval.getTotalNum()<<std::endl;
 	
