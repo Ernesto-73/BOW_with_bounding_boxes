@@ -11,9 +11,9 @@
 
 // configuration of BOW model
 typedef struct {
-	std::string trainingPath;	
+	std::string path;	
 	std::string extractor;
-	std::string descriptor;
+	std::string detector;
 	std::string cluster;
 	std::string classifier;
 	int numClusters;

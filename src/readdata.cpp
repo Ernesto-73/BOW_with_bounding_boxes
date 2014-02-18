@@ -26,30 +26,29 @@ bool annoRead(std::string annoName, BOWImg &dst)
 int imgRead(std::vector<BOWImg> &dst)
 {
 	int num=0;
-	std::cout<<std::endl;
 	for(unsigned i=0;i<conf.classes.size();i++)
 	{
-		std::cout<<"Reading class --> "<<conf.classes[i]<<std::endl;
 		for(int j=0;j<conf.max_num;j++)
 		{
 			char buf[64];
 			sprintf(buf,"image_%04d.jpg",j+1);
-			std::string imgName = conf.trainingPath+"/Images"+"/"+conf.classes[i]+"/"+std::string(buf);
+			std::string imgName = conf.path+"/Images"+"/"+conf.classes[i]+"/"+std::string(buf);
 		
 			sprintf(buf,"annotation_%04d.mat",j+1);
-			std::string annoName = conf.trainingPath+"/Annotations"+"/"+conf.classes[i]+"/"+std::string(buf);
+			std::string annoName = conf.path+"/Annotations"+"/"+conf.classes[i]+"/"+std::string(buf);
 		
 			BOWImg bowImg;
 		
-			annoRead(annoName,bowImg); // fill up box && objContour
 			bowImg.img = cv::imread(imgName,0);
+			if(!bowImg.img.data)
+				break;
+			annoRead(annoName,bowImg); // fill up box && objContour
 			bowImg.imgName = imgName;
-			bowImg.label = i;
+			bowImg.label = i+1;
 			dst.push_back(bowImg);
 			num++;
 		}
 	}
-	std::cout<<std::endl;
 	return num;
 }
 

@@ -9,24 +9,20 @@ using namespace cv;
 
 Config conf;
 
-void features(std::vector<BOWImg> &images, string ext, string des)
+void features(std::vector<BOWImg> &images, string ext, string det)
 {	
    	cv::initModule_nonfree();
-  	Ptr<FeatureDetector> detector = FeatureDetector::create(des);
+  	Ptr<FeatureDetector> detector = FeatureDetector::create(det);
 	Ptr<DescriptorExtractor> extractor = DescriptorExtractor::create(ext);
 	for(std::vector<BOWImg>::iterator iter = images.begin();iter != images.end(); iter++)
 	{
 		cv::Mat img = Mat(iter->img,Rect(iter->box[2],iter->box[0],iter->box[3]-iter->box[2],iter->box[1]-iter->box[0]));
-		/*
-		cv::imshow("test",img);
-		cv::waitKey(0);
-		*/
 		detector->detect(img,iter->keyPoints);
 		extractor->compute(img,iter->keyPoints,iter->descriptor);
 	}
 }
 
-void bowFeatures(std::vector<BOWImg> &images, cv::Mat vocabulary, string ext, Mat &trainData, Mat &response)
+void bowFeatures(std::vector<BOWImg> &images, cv::Mat vocabulary, string ext)
 {
 	cv::initModule_nonfree();
 	Ptr<DescriptorExtractor> extractor=DescriptorExtractor::create(ext);
@@ -38,28 +34,63 @@ void bowFeatures(std::vector<BOWImg> &images, cv::Mat vocabulary, string ext, Ma
 	for(std::vector<BOWImg>::iterator iter = images.begin();iter != images.end(); iter++)
 	{
 		bow.compute(iter->img,iter->keyPoints,iter->BOWDescriptor);
-		//normalize(iter->BOWDescriptor,iter->BOWDescriptor,1.0,0.0,NORM_MINMAX);
-		trainData.push_back(iter->BOWDescriptor);
-		response.push_back(iter->label);
+		
+		// To Do: Need normalization or not ?
+		normalize(iter->BOWDescriptor,iter->BOWDescriptor,1.0,0.0,NORM_MINMAX);
 	}
 }
 
+void test(Mat &vocabulary, void *src,int type)
+{
+	// Test	
+	std::cout<<"--->Testing ..."<<std::endl;
+	std::vector<BOWImg> images;
+	conf.max_num = conf.max_num * 2;
+	int numImages = imgRead(images);
+	if(numImages < 0)
+		return ;
+	
+	features(images, conf.extractor, conf.detector);
+	bowFeatures(images, vocabulary, conf.extractor);
+	
+	Mat testData;
+	for(std::vector<BOWImg>::iterator iter = images.begin();iter != images.end(); iter++)
+		testData.push_back(iter->BOWDescriptor);
+	
+	Mat output;
+	if(!type)
+	{
+		CvANN_MLP *classifier = (CvANN_MLP *)src;
+		classifier->predict(testData,output);
+	}
+	else {
+		CvSVM *classifier = (CvSVM *)src;
+		classifier->predict(testData,output);
+	}
+	
+	cout<<"--->Predict answer: "<<std::endl;
+	for(unsigned i=0;i<images.size();i++)
+		std::cout<<"    "<<images[i].imgName<<" ---- "<<conf.classes[(unsigned)output.ptr<float>()[i]-1]<<endl;
+}
+ 
 int main(int argc, char *argv[])
 {
 	// BOW configurations.
 	Cxml parser;
+	printf("\n");	
 	if(parser.parse("./bow.xml"))
 	{
-		std::cout<<"Using configuration file."<<std::endl;
-		conf.trainingPath = trim(parser.getpNode()->eval_to_string(Glib::ustring("/BOW_Configurations/trainingPath")));
+		std::cout<<"--->Using configuration file 'bow.xml'."<<std::endl;
+		conf.path = trim(parser.getpNode()->eval_to_string(Glib::ustring("/BOW_Configurations/path")));
 		conf.extractor = trim(parser.getpNode()->eval_to_string(Glib::ustring("/BOW_Configurations/extractor")));
-		conf.descriptor = trim(parser.getpNode()->eval_to_string(Glib::ustring("/BOW_Configurations/descriptor")));
+		conf.detector = trim(parser.getpNode()->eval_to_string(Glib::ustring("/BOW_Configurations/detector")));
 		conf.cluster = trim(parser.getpNode()->eval_to_string(Glib::ustring("/BOW_Configurations/cluster")));
 		conf.classifier = trim(parser.getpNode()->eval_to_string(Glib::ustring("/BOW_Configurations/classifier")));
 		conf.numClusters = parser.getpNode()->eval_to_number(Glib::ustring("/BOW_Configurations/numClusters"));
 	}
 	else {
 		// config with args
+		std::cout<<"--->Using command line args."<<std::endl;
 		if(argc < 3)
 		{
 			std::cout<<std::endl
@@ -73,10 +104,10 @@ int main(int argc, char *argv[])
 			return EXIT_FAILURE;
 		}
 		
-		//conf.trainingPath = "/home/javier/Caltech-101/";
+		//conf.path = "/home/javier/Caltech-101/";
 	
 		// Default options
-		conf.descriptor = "SIFT";	// descriptor
+		conf.detector = "SIFT";	// detector
 		conf.extractor = "SIFT";	// extractor
 		conf.classifier = "SVM";
 		conf.cluster = "Kmeans++";
@@ -91,7 +122,7 @@ int main(int argc, char *argv[])
 				break;
 			else {
 				if(string(argv[i]) == "-p") {
-					conf.trainingPath =string(argv[i+1]);
+					conf.path =string(argv[i+1]);
 				}else if(string(argv[i]) == "-e") {
 					conf.extractor = string(argv[i+1]);
 				}else if(string(argv[i]) == "-c") {
@@ -107,49 +138,48 @@ int main(int argc, char *argv[])
 				}
 			}
 		}
-	
+		
 		// Save configurations to a .xml file
 		parser.addRoot("BOW_Configurations");
 	
-		parser.addItem("trainingPath",conf.trainingPath);
-		parser.addItem("annotationsPath",conf.trainingPath+"/Annotations");
-		parser.addItem("imagesPath",conf.trainingPath+"/Images");
+		parser.addItem("path",conf.path);
+		parser.addItem("annotationsPath",conf.path+"/Annotations");
+		parser.addItem("imagesPath",conf.path+"/Images");
 		parser.addItem("extractor",conf.extractor);
-		parser.addItem("descriptor",conf.descriptor);
+		parser.addItem("detector",conf.detector);
 		parser.addItem("classifier",conf.classifier);
 		parser.addItem("cluster",conf.cluster);
 		parser.addItem("numClusters",tmp);
 	
 		parser.create("./bow.xml");
 	}
-	
-#ifdef DEBUG
-		std::cout<<__FILE__<<":"<<__LINE__<<std::endl;
-		std::cout<<conf.trainingPath<<std::endl;
-		std::cout<<conf.extractor<<std::endl;
-		std::cout<<conf.descriptor<<std::endl;
-		std::cout<<conf.classifier<<std::endl;
-		std::cout<<conf.cluster<<std::endl;
-		std::cout<<conf.numClusters<<std::endl;
-#endif 
+
+		std::cout<<"--->Training path: "<<conf.path<<std::endl;
+		std::cout<<"--->Feature detector: "<<conf.detector<<std::endl;
+		std::cout<<"--->Feature extractor: "<<conf.extractor<<std::endl;
+		std::cout<<"--->Classifier: "<<conf.classifier<<std::endl;
+		std::cout<<"--->Cluster algorithm: "<<conf.cluster<<std::endl;
+		std::cout<<"--->Cluster medoids amount: "<<conf.numClusters<<std::endl;
 
 	conf.max_num = 10; // At most read max_num pictures in every class. 
 	
 	// Read clsval to conf struct
 	std::fstream fs;
-	string tmp = conf.trainingPath+"/clsval";
+	string tmp = conf.path+"/clsval";
 	fs.open(tmp.c_str(),std::fstream::in);
 	char buf[256];
 	while(fs.getline(buf,256))
-	{
-		std::cout<<buf<<std::endl;
 		conf.classes.push_back(trim(string(buf)));		
-	}
 	fs.close();
 	
-	std::cout<<conf.classes.size()<<std::endl;
-	
+	printf("--->Selected categories [%d]: ",(int)conf.classes.size());
+	unsigned k;
+	for(k=0;k<conf.classes.size()-1;k++)
+		printf("<%s>, ",conf.classes[k].c_str());
+	printf("<%s>\n",conf.classes[k].c_str());
+			
 	// Load training images
+	std::cout<<"--->Loading images ... "<<std::endl;
 	std::vector<BOWImg> images;
 	int numImages = imgRead(images);
 	if(numImages < 0)
@@ -158,8 +188,10 @@ int main(int argc, char *argv[])
 	/*
 		Get the ROI of images. 
 		Feature detect and extract descriptors.
-	*/	
-	features(images, conf.extractor, conf.descriptor);
+	*/
+	printf("\n");
+	printf("--->Extracting %s features ...\n", conf.extractor.c_str());	
+	features(images, conf.extractor, conf.detector);
 	
 	BOWKMeansTrainer trainer(conf.numClusters,TermCriteria(CV_TERMCRIT_EPS+CV_TERMCRIT_ITER,10,1.0));
 	for(std::vector<BOWImg>::iterator iter = images.begin();iter != images.end(); iter++)
@@ -168,29 +200,82 @@ int main(int argc, char *argv[])
 		trainer.add(tmp);
 	}
 	
+	std::cout<<"--->Constructing vocabulary list ..."<<std::endl;	
 	Mat vocabulary = trainer.cluster();
 	
+	
+	std::cout<<"--->Extracting BOW features ..."<<std::endl;
+ 	bowFeatures(images, vocabulary, conf.extractor);
+ 	
+ 	// Prepare traning data.
 	Mat trainData;
 	Mat response;
- 	bowFeatures(images, vocabulary, conf.extractor, trainData, response);
 	
-	CvSVMParams params;
-	params.kernel_type=CvSVM::LINEAR;
-	params.svm_type=CvSVM::C_SVC;
-	params.term_crit=cvTermCriteria(CV_TERMCRIT_ITER+CV_TERMCRIT_EPS,1000,1e-6);
-
-	CvSVM svm;
-	svm.train(trainData,response,Mat(),Mat(),params);
-	
-	// save support vectors
-	int c = svm.get_support_vector_count();
-	for(int i = 0;i<c;i++)
+	for(std::vector<BOWImg>::iterator iter = images.begin();iter != images.end(); iter++)
 	{
-		const float* v = svm.get_support_vector(i);
-		for(int j = 0;j<50;j++)
-			printf("%f ",v[j]);
-		printf("\n");
+		trainData.push_back(iter->BOWDescriptor);
+		response.push_back(iter->label);
 	}
+		
+	// Train
+ 	if(conf.classifier == "SVM")
+ 	{
+	 	std::cout<<"--->SVM Training ..."<<std::endl;	
+		CvSVMParams params;
+		params.kernel_type = CvSVM::LINEAR;
+		params.svm_type = CvSVM::C_SVC;
+		params.term_crit = cvTermCriteria(CV_TERMCRIT_ITER+CV_TERMCRIT_EPS,1000,1e-6);
+
+		CvSVM classifier;
+		classifier.train(trainData,response,Mat(),Mat(),params);
+
+		int c = classifier.get_support_vector_count();
+	 	printf("    %d support vectors founded.\n",c);
+	 	test(vocabulary, (void *)&classifier, 1);
+	}
+	else if(conf.classifier == "BP")
+	{
+		std::cout<<"--->BP Training ..."<<std::endl;	
+	  	// Data transforming.
+	   	cv::Mat labelMat;
+		response.convertTo(labelMat,CV_32F);
 	
+		// Set up BP network parameters
+		CvANN_MLP_TrainParams params;
+		params.term_crit = cvTermCriteria( CV_TERMCRIT_ITER + CV_TERMCRIT_EPS, 1000, 0.01 ),
+		params.train_method = CvANN_MLP_TrainParams::BACKPROP;  
+		params.bp_dw_scale = 0.1;  
+		params.bp_moment_scale = 0.1;  
+		
+	   	CvANN_MLP classifier;
+	 
+	   	// Set up the topology structure of BP network.
+	   	int inputNodeNum = (int )conf.numClusters;
+	   	int hiddenLayerNum = 10;
+	   	int hiddenNodeNum = inputNodeNum;
+	   	int outputNodeNum = 1;
+	   	
+	   	// It could be better! esp. Output node amount
+	   	printf("    %d input nodes, %d hidden layers, %d output nodes.\n",inputNodeNum, hiddenLayerNum, outputNodeNum);
+	   	Mat layerSizes;
+	   	layerSizes.push_back(inputNodeNum);
+	   	printf("    Hidden layers nodes' amount: ");
+	   	for(int i=0;i<hiddenLayerNum;i++)
+	   	{
+	   		if(hiddenNodeNum > outputNodeNum * 2 + 1 )
+				hiddenNodeNum = (int)(hiddenNodeNum / 2);
+		   	layerSizes.push_back(hiddenNodeNum);
+		   	printf(" %d ",hiddenNodeNum);
+	   	}
+	   	printf("\n");
+	   	layerSizes.push_back(outputNodeNum);
+	   	
+	   	classifier.create(layerSizes, CvANN_MLP::SIGMOID_SYM);
+		classifier.train(trainData, labelMat, Mat(),Mat(), params); 
+		test(vocabulary, (void *)&classifier, 0);
+	}
+	else{
+		std::cout<<"--->Error: wrong classifier."<<std::endl;
+	}	
 	return EXIT_SUCCESS;
 }
