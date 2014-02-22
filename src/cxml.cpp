@@ -55,9 +55,7 @@ int Cxml::addItem(Glib::ustring name, Glib::ustring text)
 	
 Cxml::~Cxml()
 {
-#ifdef DEBUG
-	std::cout<<__FILE__<<":"<<__LINE__<<std::endl;
-#endif 
+ 
 }
 
 // create a xml file

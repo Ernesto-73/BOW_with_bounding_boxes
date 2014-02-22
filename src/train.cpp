@@ -43,41 +43,83 @@ void bowFeatures(std::vector<BOWImg> &images, cv::Mat vocabulary, string ext)
 void test(Mat &vocabulary, void *src,int type)
 {
 	// Test	
-	std::cout<<"--->Testing ..."<<std::endl;
+	printf("\n");
+	std::cout<<"- BOW Testing"<<std::endl;
+	
 	std::vector<BOWImg> images;
 	conf.max_num = conf.max_num * 2;
+	std::cout<<"--->Loading testing images ... "<<std::endl;
 	int numImages = imgRead(images);
+	std::cout<<"    "<<numImages<<" images loaded."<<std::endl;
 	if(numImages < 0)
 		return ;
-	
+		
+	printf("--->Extracting %s features ...\n", conf.extractor.c_str());	
 	features(images, conf.extractor, conf.detector);
+	
+	std::cout<<"--->Extracting BOW features ..."<<std::endl;
 	bowFeatures(images, vocabulary, conf.extractor);
 	
 	Mat testData;
 	for(std::vector<BOWImg>::iterator iter = images.begin();iter != images.end(); iter++)
 		testData.push_back(iter->BOWDescriptor);
-	
+		
+	// PCA	
+	float factor = 1;
+	int maxComponentsNum = static_cast<float>(conf.numClusters) * factor;
+	PCA pca(testData, Mat(),CV_PCA_DATA_AS_ROW, maxComponentsNum);
+	Mat pcaData;
+	for(int i = 0;i<testData.rows;i++)
+	{
+		Mat vec = testData.row(i);
+		Mat coeffs = pca.project(vec);
+		pcaData.push_back(coeffs);
+	}	
+		
+	std::cout<<"--->Executing predictions ..."<<std::endl;
 	Mat output;
 	if(!type)
 	{
 		CvANN_MLP *classifier = (CvANN_MLP *)src;
-		classifier->predict(testData,output);
+		classifier->predict(pcaData,output);
+		cout<<"--->Predict answer: "<<std::endl;
+		for(int i = 0;i < output.rows;i++)
+		{
+			float *p = output.ptr<float>(i);
+			int k = 0;
+			int tmp = 0;
+			for(int j = 0;j < output.cols;j++)
+			{	
+				if(p[j] > tmp )
+				{
+					tmp = p[j];
+					k = j;
+				}
+			}
+			std::cout<<"    "<<images[i].imgName<<" ---- "<<conf.classes[k]<<endl;
+		}
 	}
 	else {
 		CvSVM *classifier = (CvSVM *)src;
-		classifier->predict(testData,output);
+		classifier->predict(pcaData,output);
+		cout<<"--->Predict answer: "<<std::endl;
+		for(int i = 0;i < output.rows;i++)
+			std::cout<<"    "<<images[i].imgName<<" ---- "<<conf.classes[(unsigned)output.ptr<float>()[i]-1]<<endl;
 	}
-	
-	cout<<"--->Predict answer: "<<std::endl;
-	for(unsigned i=0;i<images.size();i++)
-		std::cout<<"    "<<images[i].imgName<<" ---- "<<conf.classes[(unsigned)output.ptr<float>()[i]-1]<<endl;
+#ifdef DE_BUG
+	cv::FileStorage fs("./output.xml",cv::FileStorage::WRITE);
+	fs<<"Mats"<<"{";
+	fs<<"output"<<output;
+	fs.release();
+#endif
 }
  
 int main(int argc, char *argv[])
 {
 	// BOW configurations.
 	Cxml parser;
-	printf("\n");	
+	printf("\033c\n");
+	std::cout<<"- BOW Configuration"<<std::endl;
 	if(parser.parse("./bow.xml"))
 	{
 		std::cout<<"--->Using configuration file 'bow.xml'."<<std::endl;
@@ -161,7 +203,7 @@ int main(int argc, char *argv[])
 		std::cout<<"--->Cluster algorithm: "<<conf.cluster<<std::endl;
 		std::cout<<"--->Cluster medoids amount: "<<conf.numClusters<<std::endl;
 
-	conf.max_num = 10; // At most read max_num pictures in every class. 
+	conf.max_num = 20; // At most read max_num pictures in every class. 
 	
 	// Read clsval to conf struct
 	std::fstream fs;
@@ -179,17 +221,22 @@ int main(int argc, char *argv[])
 	printf("<%s>\n",conf.classes[k].c_str());
 			
 	// Load training images
-	std::cout<<"--->Loading images ... "<<std::endl;
+	printf("\n");
+	std::cout<<"- BOW Training"<<std::endl;
+	std::cout<<"--->Loading training images ... "<<std::endl;
 	std::vector<BOWImg> images;
 	int numImages = imgRead(images);
 	if(numImages < 0)
 		return EXIT_FAILURE;
+	std::cout<<"    "<<numImages<<" images loaded."<<std::endl;
+	
+	// Random shuffle samples
+	 std::random_shuffle (images.begin(), images.end());
 	
 	/*
 		Get the ROI of images. 
 		Feature detect and extract descriptors.
 	*/
-	printf("\n");
 	printf("--->Extracting %s features ...\n", conf.extractor.c_str());	
 	features(images, conf.extractor, conf.detector);
 	
@@ -203,7 +250,6 @@ int main(int argc, char *argv[])
 	std::cout<<"--->Constructing vocabulary list ..."<<std::endl;	
 	Mat vocabulary = trainer.cluster();
 	
-	
 	std::cout<<"--->Extracting BOW features ..."<<std::endl;
  	bowFeatures(images, vocabulary, conf.extractor);
  	
@@ -216,7 +262,19 @@ int main(int argc, char *argv[])
 		trainData.push_back(iter->BOWDescriptor);
 		response.push_back(iter->label);
 	}
-		
+	
+	// PCA	
+	float factor = 1;
+	int maxComponentsNum = static_cast<float>(conf.numClusters) * factor;
+	PCA pca(trainData, Mat(),CV_PCA_DATA_AS_ROW, maxComponentsNum);
+	Mat pcaData;
+	for(int i = 0;i<trainData.rows;i++)
+	{
+		Mat vec = trainData.row(i);
+		Mat coeffs = pca.project(vec);
+		pcaData.push_back(coeffs);
+	}	
+	
 	// Train
  	if(conf.classifier == "SVM")
  	{
@@ -225,9 +283,9 @@ int main(int argc, char *argv[])
 		params.kernel_type = CvSVM::LINEAR;
 		params.svm_type = CvSVM::C_SVC;
 		params.term_crit = cvTermCriteria(CV_TERMCRIT_ITER+CV_TERMCRIT_EPS,1000,1e-6);
-
+		
 		CvSVM classifier;
-		classifier.train(trainData,response,Mat(),Mat(),params);
+		classifier.train(pcaData,response,Mat(),Mat(),params);
 
 		int c = classifier.get_support_vector_count();
 	 	printf("    %d support vectors founded.\n",c);
@@ -235,11 +293,17 @@ int main(int argc, char *argv[])
 	}
 	else if(conf.classifier == "BP")
 	{
-		std::cout<<"--->BP Training ..."<<std::endl;	
+		std::cout<<"--->BP Training ..."<<std::endl;
+		
 	  	// Data transforming.
-	   	cv::Mat labelMat;
-		response.convertTo(labelMat,CV_32F);
-	
+		int numClass = (int)conf.classes.size();
+	   	cv::Mat labelMat = Mat::zeros(response.rows, numClass, CV_32F);
+		for(int i = 0;i<response.rows;i++)
+		{
+			int k = response.ptr<int>()[i];
+			labelMat.ptr<float>(i)[k-1] = 1.0;
+		}
+			
 		// Set up BP network parameters
 		CvANN_MLP_TrainParams params;
 		params.term_crit = cvTermCriteria( CV_TERMCRIT_ITER + CV_TERMCRIT_EPS, 1000, 0.01 ),
@@ -250,28 +314,35 @@ int main(int argc, char *argv[])
 	   	CvANN_MLP classifier;
 	 
 	   	// Set up the topology structure of BP network.
-	   	int inputNodeNum = (int )conf.numClusters;
-	   	int hiddenLayerNum = 10;
-	   	int hiddenNodeNum = inputNodeNum;
-	   	int outputNodeNum = 1;
-	   	
+	   	int inputNodeNum = pcaData.cols;
+		float ratio = 2;
+	   	int hiddenNodeNum = static_cast<float>(inputNodeNum) * ratio;
+	   	int outputNodeNum = numClass;
+	   	int maxHiddenLayersNum = 1;
+		
 	   	// It could be better! esp. Output node amount
-	   	printf("    %d input nodes, %d hidden layers, %d output nodes.\n",inputNodeNum, hiddenLayerNum, outputNodeNum);
+	   	printf("    %d input nodes, %d output nodes.\n",inputNodeNum, outputNodeNum);
 	   	Mat layerSizes;
 	   	layerSizes.push_back(inputNodeNum);
 	   	printf("    Hidden layers nodes' amount: ");
-	   	for(int i=0;i<hiddenLayerNum;i++)
+		layerSizes.push_back(hiddenNodeNum);
+		
+	   	for(int i = 0 ;i<maxHiddenLayersNum;i++)
 	   	{
-	   		if(hiddenNodeNum > outputNodeNum * 2 + 1 )
-				hiddenNodeNum = (int)(hiddenNodeNum / 2);
-		   	layerSizes.push_back(hiddenNodeNum);
-		   	printf(" %d ",hiddenNodeNum);
+	   		if(hiddenNodeNum > outputNodeNum * ratio + 1 )
+			{
+				hiddenNodeNum = static_cast<float>(hiddenNodeNum) / ratio;
+				layerSizes.push_back(hiddenNodeNum);
+				printf(" %d ",hiddenNodeNum);
+			}
+			else 
+				break;
 	   	}
 	   	printf("\n");
 	   	layerSizes.push_back(outputNodeNum);
 	   	
 	   	classifier.create(layerSizes, CvANN_MLP::SIGMOID_SYM);
-		classifier.train(trainData, labelMat, Mat(),Mat(), params); 
+		classifier.train(pcaData, labelMat, Mat(),Mat(), params); 
 		test(vocabulary, (void *)&classifier, 0);
 	}
 	else{
