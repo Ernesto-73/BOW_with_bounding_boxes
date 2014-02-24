@@ -7,7 +7,10 @@
 #ifndef _CONF_H_
 #define _CONF_H_
 
+#include <fstream>
 #include <opencv2/opencv.hpp>
+#include <termios.h>
+#include "cxml.h"
 
 // configuration of BOW model
 typedef struct {
@@ -33,4 +36,11 @@ typedef struct {
 	//std::vector<double> objContour; 
 }BOWImg;
 
+std::string trim(std::string s, const char* t =" \t\n\r\f\v");
+
+bool configuration(int argc, char *argv[]);
+
+static void restore_terminal_settings(void);
+
+static void disable_terminal_return(void);
 #endif

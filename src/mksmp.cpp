@@ -1,5 +1,5 @@
 /* 	
-	\file: SampleSet.h
+	\file: mksmp.cpp
 	\author: Javier Zhang 
 	\date: 1-21-2014
 */

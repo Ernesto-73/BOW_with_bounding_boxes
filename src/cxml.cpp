@@ -99,7 +99,7 @@ bool Cxml::fileExists(std::string fileName)
 	if(access(fileName.c_str(),R_OK | W_OK | F_OK))
 	{
 		std::string  mesg(strerror(errno));
-		std::cout<<__FILE__<<":"<<__LINE__<<" Warning("<<errno<<"): "<<mesg<<std::endl;
+		std::cout<<__FILE__<<":"<<__LINE__<<" Warning("<<errno<<"): "<<mesg<<" '"<<fileName<<"'"<<std::endl;
 		return false;
 	}
 	else 

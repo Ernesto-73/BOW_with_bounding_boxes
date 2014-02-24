@@ -7,6 +7,7 @@
 #include "readdata.h"
 
 extern Config conf;
+
 bool annoRead(std::string annoName, BOWImg &dst)
 {
 	mat_t *matfp = Mat_Open(annoName.c_str(),MAT_ACC_RDONLY);
@@ -16,9 +17,10 @@ bool annoRead(std::string annoName, BOWImg &dst)
 	    std::cerr<<"Cannot open file '"<<annoName<<"'."<<std::endl;
 	    return false;
 	}
-	readNumber<int>(matfp,"box_coord",dst.box);
+	char varName[] = "box_coord";
+	readNumber<int>(matfp,varName,dst.box);
 	//readNumber<double>(matfp,"obj_contour",dst.objContour);
-
+	
 	Mat_Close(matfp);
 	return true;
 }
@@ -28,6 +30,12 @@ int imgRead(std::vector<BOWImg> &dst)
 	int num=0;
 	for(unsigned i=0;i<conf.classes.size();i++)
 	{
+		std::string path = conf.path+"/Images"+"/"+conf.classes[i];
+		if(access(path.c_str(),R_OK | W_OK | F_OK))
+		{
+			std::cerr<<"Error: Directory '"<<path<<"' does not exist."<<std::endl;
+			return -1;
+		}
 		for(int j=0;j<conf.max_num;j++)
 		{
 			char buf[64];
@@ -52,9 +60,4 @@ int imgRead(std::vector<BOWImg> &dst)
 	return num;
 }
 
-std::string trim(std::string s, const char* t)
-{
-	s.erase(0, s.find_first_not_of(t));
-	s.erase(s.find_last_not_of(t) + 1);
-	return s;
-}
+

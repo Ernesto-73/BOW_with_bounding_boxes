@@ -1,5 +1,5 @@
 /* 	
-	\file: SampleSet.h
+	\file: sample.h
 	\author: Javier Zhang 
 	\date: 1-21-2014
 */
@@ -12,16 +12,10 @@
 #include <sys/stat.h>
 #include <dirent.h>
 #include <unistd.h>
-
-#include <iostream>
 #include <fstream>
 #include <vector>
-#include <errno.h>
-#include <cstring>
 #include <sstream>
-#include <cstdlib>
 #include <cstdio>
-#include <cassert>
 #include "cxml.h"
 
 typedef struct dirent *DStream;

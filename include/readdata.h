@@ -43,5 +43,4 @@ void readNumber(mat_t *matfp, char *varName, std::vector<Type> &dst)
 	}
 }
 
-std::string trim(std::string s, const char* t =" \t\n\r\f\v");
 #endif

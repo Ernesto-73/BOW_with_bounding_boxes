@@ -3,7 +3,7 @@
 
 CXX         = g++
 CC          = $(CXX)
-CPPFLAGS    = -g -Wall -D DEBUG
+CPPFLAGS    = -O3 -g -Wall -fopenmp -D DEBUG -D _USE_OPENMP_ 
 CXXFLAGS    = $(INCLUDE) `pkg-config --libs --cflags libxml++-2.6 matio` -lopencv_highgui -lopencv_core -lopencv_features2d -lopencv_nonfree -lopencv_ml
 SOURCES     = ./src/
 HEADERS     = ./include/
@@ -12,7 +12,7 @@ LIBS        = ./lib/
 BIN         = ./bin/
 INCLUDE     = -I$(HEADERS)
 LIBRARY     = -L$(LIBS)
-CPP_OBJS    =  $(OBJS)cxml.o $(OBJS)readdata.o
+CPP_OBJS    =  $(OBJS)cxml.o $(OBJS)readdata.o $(OBJS)bow.o $(OBJS)conf.o $(OBJS)conf.o $(OBJS)sample.o 
 
 CPP_TRAIN    = $(SOURCES)train.cpp
 CPP_MKSMP    = $(SOURCES)mksmp.cpp

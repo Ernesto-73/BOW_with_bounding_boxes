@@ -1,10 +1,10 @@
 /* 	
-	\file: SampleSet.h
+	\file: sample.cpp
 	\author: Javier Zhang 
 	\date: 1-21-2014
 */
 
-#include "SampleSet.h"
+#include "sample.h"
 
 /*
 	The impletation of class SampleSet. Used to create index file of images.
@@ -80,7 +80,8 @@ void SampleSet::rename()
 			if(name == newName)		 
 				continue;
 			else 
-				system(cmd.c_str());
+				if(system(cmd.c_str()) == -1)
+					exit(-1);
 			num++;
 		}
 	}
