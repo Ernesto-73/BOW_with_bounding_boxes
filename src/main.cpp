@@ -43,7 +43,7 @@ int main(int argc, char *argv[])
 		
 	printf("\n");
 	std::cout<<"- BOW Testing"<<std::endl;
-	test(vocabulary, classifier);
+	double ac_rate = test(vocabulary, classifier);
 	gettimeofday(&t_fin, NULL);
 	
 	// Number of secs taken to load the whole model
@@ -51,7 +51,7 @@ int main(int argc, char *argv[])
 	secs = timeval_diff(&t_fin, &t_ini);
 	std::cout<<"------------------------------------------------------------------------------------------------"<<std::endl;
 	std::cout<<"Elapsed time: "<<secs<<" seconds"<<std::endl;
-	std::cout<<"Accurate rate: "<<"%"<<std::endl;
+	std::cout<<"Accurate rate: "<<ac_rate<<std::endl;
 	std::cout<<"------------------------------------------------------------------------------------------------"<<std::endl<<std::endl;
 	return EXIT_SUCCESS;
 }

@@ -14,7 +14,7 @@ INCLUDE     = -I$(HEADERS)
 LIBRARY     = -L$(LIBS)
 CPP_OBJS    =  $(OBJS)cxml.o $(OBJS)readdata.o $(OBJS)bow.o $(OBJS)conf.o $(OBJS)conf.o $(OBJS)sample.o 
 
-CPP_TRAIN    = $(SOURCES)train.cpp
+CPP_TRAIN    = $(SOURCES)main.cpp
 CPP_MKSMP    = $(SOURCES)mksmp.cpp
 
 LIBA        = $(LIBS)libbow.a
@@ -27,9 +27,9 @@ $(LIBA): $(CPP_OBJS)
 	@echo Building library...
 	@ar rs $(LIBA) $(CPP_OBJS)
 
-train: $(CPP_TRAIN) $(LIBA)
+bow: $(CPP_TRAIN) $(LIBA)
 	@echo Building train executable file ...	
-	@$(CC) $(CPP_TRAIN) -o $(BIN)train $(CPPFLAGS) $(LIBRARY) -lbow $(CXXFLAGS) 
+	@$(CC) $(CPP_TRAIN) -o $(BIN)bow $(CPPFLAGS) $(LIBRARY) -lbow $(CXXFLAGS) 
 	
 mksmp: $(CPP_MKSMP) $(LIBA)
 	@echo Building mksmp executable file ...	
@@ -38,4 +38,4 @@ mksmp: $(CPP_MKSMP) $(LIBA)
 clean:
 	@rm $(OBJS)*.o
 	@rm $(LIBS)*.a
-	@rm $(BIN)train
+	@rm $(BIN)bow

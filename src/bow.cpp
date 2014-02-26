@@ -56,7 +56,7 @@ void bowFeatures(std::vector<BOWImg> &images, cv::Mat vocabulary, std::string ex
 #endif
 }
 
-void test(cv::Mat &vocabulary, void *src)
+double test(cv::Mat &vocabulary, void *src)
 {
 	// Test	
 	std::vector<BOWImg> images;
@@ -66,7 +66,7 @@ void test(cv::Mat &vocabulary, void *src)
 	int numImages = imgRead(images);
 	std::cout<<"    "<<numImages<<" images loaded."<<std::endl;
 	if(numImages < 0)
-		return ;
+		return -1;
 		
 	printf("--->Extracting %s features ...\n", conf.extractor.c_str());	
 	features(images, conf.extractor, conf.detector);
@@ -97,6 +97,8 @@ void test(cv::Mat &vocabulary, void *src)
 
 	std::cout<<"--->Executing predictions ..."<<std::endl;
 	cv::Mat output;
+	double ac = 0;
+	double ac_rate = 0;
 	if(conf.classifier == "BP")
 	{
 		CvANN_MLP *classifier = (CvANN_MLP *)src;
@@ -116,7 +118,10 @@ void test(cv::Mat &vocabulary, void *src)
 				}
 			}
 			std::cout<<"    "<<images[i].imgName<<" ---- "<<conf.classes[k]<<endl;
+			if(images[i].label == k+1)
+				ac++;
 		}
+		ac_rate = ac / static_cast<double>(output.rows);
 	}
 	else if(conf.classifier == "SVM")
 	{
@@ -124,17 +129,18 @@ void test(cv::Mat &vocabulary, void *src)
 		classifier->predict(testData,output);
 		cout<<"--->Predict answer: "<<std::endl;
 		for(int i = 0;i < output.rows;i++)
-			std::cout<<"    "<<images[i].imgName<<" ---- "<<conf.classes[(unsigned)output.ptr<float>()[i]-1]<<endl;
+		{
+			int k = (int)output.ptr<float>()[i]-1;
+			std::cout<<"    "<<images[i].imgName<<" ---- "<<conf.classes[k]<<endl;
+			if(images[i].label == k+1)
+				ac++;
+		}
+		ac_rate = ac / static_cast<double>(output.rows);
 	}
 	else {
 		std::cout<<"--->Error: wrong classifier."<<std::endl;
 	}
-#ifdef DE_BUG
-	cv::FileStorage fs("./output.xml",cv::FileStorage::WRITE);
-	fs<<"Mats"<<"{";
-	fs<<"output"<<output;
-	fs.release();
-#endif
+	return ac_rate;
 }
  
 bool makeBOWModel(std::vector<BOWImg> &images, Mat &vocabulary, Mat &trainData, Mat &response)
@@ -248,7 +254,7 @@ void *train(Mat &trainData, Mat &response)
 	   	printf("    %d input nodes, %d output nodes.\n",inputNodeNum, outputNodeNum);
 	   	Mat layerSizes;
 	   	layerSizes.push_back(inputNodeNum);
-	   	printf("    Hidden layers nodes' amount: ");
+	   	printf("    Hidden layers nodes' amount:");
 		layerSizes.push_back(hiddenNodeNum);
 		
 	   	for(int i = 0 ;i<maxHiddenLayersNum;i++)

@@ -19,7 +19,7 @@ void features(std::vector<BOWImg> &images, std::string ext, std::string det);
 
 void bowFeatures(std::vector<BOWImg> &images, cv::Mat vocabulary, std::string ext);
 
-void test(cv::Mat &vocabulary, void *src);
+double test(cv::Mat &vocabulary, void *src);
 
 bool makeBOWModel(std::vector<BOWImg> &images, cv::Mat &vocabulary, cv::Mat &trainData, cv::Mat &response);
 
