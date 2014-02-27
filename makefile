@@ -3,7 +3,7 @@
 
 CXX         = g++
 CC          = $(CXX)
-CPPFLAGS    = -O3 -g -Wall -fopenmp -D DEBUG -D _USE_OPENMP_ 
+CPPFLAGS    = -O3 -fopenmp -D _USE_OPENMP_ 
 CXXFLAGS    = $(INCLUDE) `pkg-config --libs --cflags libxml++-2.6 matio` -lopencv_highgui -lopencv_core -lopencv_features2d -lopencv_nonfree -lopencv_ml
 SOURCES     = ./src/
 HEADERS     = ./include/

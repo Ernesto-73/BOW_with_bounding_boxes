@@ -5,7 +5,7 @@
 */
 
 #include "conf.h"
-
+	
 extern Config conf;
 
 static struct termios oldt;
@@ -139,6 +139,7 @@ bool configuration(int argc, char *argv[])
 	char key = getchar();
 	if(key == 'n' || key == 'N')
 		return	false;
+	
 	return true;
 }
 
