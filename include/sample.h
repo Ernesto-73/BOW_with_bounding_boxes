@@ -1,22 +1,21 @@
-/* 	\file: SampleSet.h
+/* 	
+	\file: sample.h
 	\author: Javier Zhang 
+	\date: 1-21-2014
 */
-#ifndef SAMPLESET_H
-#define SAMPLESET_H
 
+#ifndef _SAMPLESET_H_
+#define _SAMPLESET_H_
+
+// these are the unix system call headers
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <dirent.h>
-#include <iostream>
-#include <fstream>
 #include <unistd.h>
+#include <fstream>
 #include <vector>
-#include <errno.h>
-#include <cstring>
 #include <sstream>
-#include <cstdlib>
 #include <cstdio>
-#include <cassert>
 #include "cxml.h"
 
 typedef struct dirent *DStream;
